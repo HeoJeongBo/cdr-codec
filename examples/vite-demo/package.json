@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:samples": "node scripts/generate-samples.mjs"
   },
   "dependencies": {
     "@heojeongbo/cdr-codec": "workspace:*",
@@ -18,6 +19,7 @@
     "sql.js": "^1.14.1"
   },
   "devDependencies": {
+    "@mcap/core": "^2.2.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react-swc": "^3.7.0",

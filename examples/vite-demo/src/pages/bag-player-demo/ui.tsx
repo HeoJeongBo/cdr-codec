@@ -115,51 +115,60 @@ export function BagPlayerDemo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setupSubscriptions = useCallback(
-    (player: BagPlayer, topics: ReadonlySet<string>) => {
-      // Drop existing.
-      for (const [topic, unsub] of subsRef.current) {
-        if (!topics.has(topic)) {
-          unsub();
-          subsRef.current.delete(topic);
-          setLatestByTopic((prev) => {
-            if (!(topic in prev)) return prev;
-            const next = { ...prev };
-            delete next[topic];
-            return next;
-          });
+  // Sync `subsRef` to (player, activeTopics): unsubscribe topics no longer
+  // active, subscribe newly active ones. Idempotent — safe under React 19
+  // strict mode's effect re-runs.
+  useEffect(() => {
+    const player = playerState?.player;
+    if (!player) return;
+
+    // Drop subs whose topic is no longer active.
+    for (const [topic, unsub] of subsRef.current) {
+      if (!activeTopics.has(topic)) {
+        unsub();
+        subsRef.current.delete(topic);
+      }
+    }
+    // Trim latestByTopic to the currently active set.
+    setLatestByTopic((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const topic of Object.keys(next)) {
+        if (!activeTopics.has(topic)) {
+          delete next[topic];
+          changed = true;
         }
       }
-      // Add new.
-      for (const topic of topics) {
-        if (subsRef.current.has(topic)) continue;
-        const unsub = player.subscribe(topic, (msg, ev: BagEvent) => {
-          const id = ++logIdRef.current;
-          const preview = previewMessage(msg);
-          const logEntry: LogEntry = {
-            id,
+      return changed ? next : prev;
+    });
+    // Add subs for newly active topics.
+    for (const topic of activeTopics) {
+      if (subsRef.current.has(topic)) continue;
+      const unsub = player.subscribe(topic, (msg, ev: BagEvent) => {
+        const id = ++logIdRef.current;
+        const preview = previewMessage(msg);
+        const logEntry: LogEntry = {
+          id,
+          topic: ev.topic,
+          logTime: ev.logTime,
+          preview,
+        };
+        setLog((prev) => {
+          const next = prev.length >= MAX_LOG ? prev.slice(-MAX_LOG + 1) : prev;
+          return [...next, logEntry];
+        });
+        setLatestByTopic((prev) => ({
+          ...prev,
+          [ev.topic]: {
             topic: ev.topic,
             logTime: ev.logTime,
-            preview,
-          };
-          setLog((prev) => {
-            const next = prev.length >= MAX_LOG ? prev.slice(-MAX_LOG + 1) : prev;
-            return [...next, logEntry];
-          });
-          setLatestByTopic((prev) => ({
-            ...prev,
-            [ev.topic]: {
-              topic: ev.topic,
-              logTime: ev.logTime,
-              preview: previewMessage(msg, 400),
-            },
-          }));
-        });
-        subsRef.current.set(topic, unsub);
-      }
-    },
-    [],
-  );
+            preview: previewMessage(msg, 400),
+          },
+        }));
+      });
+      subsRef.current.set(topic, unsub);
+    }
+  }, [playerState, activeTopics]);
 
   const openFile = useCallback(
     async (file: File) => {
@@ -201,27 +210,23 @@ export function BagPlayerDemo() {
           .map((t) => t.name);
         const initial = new Set(decodable);
         setActiveTopics(initial);
-        setupSubscriptions(player, initial);
+        // Subscriptions are wired up by the useEffect that watches
+        // (playerState, activeTopics).
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
     },
-    [codecs, playerState, setupSubscriptions],
+    [codecs, playerState],
   );
 
-  const toggleTopic = useCallback(
-    (topic: string) => {
-      if (!playerState) return;
-      setActiveTopics((prev) => {
-        const next = new Set(prev);
-        if (next.has(topic)) next.delete(topic);
-        else next.add(topic);
-        setupSubscriptions(playerState.player, next);
-        return next;
-      });
-    },
-    [playerState, setupSubscriptions],
-  );
+  const toggleTopic = useCallback((topic: string) => {
+    setActiveTopics((prev) => {
+      const next = new Set(prev);
+      if (next.has(topic)) next.delete(topic);
+      else next.add(topic);
+      return next;
+    });
+  }, []);
 
   const toggleFilter = useCallback((topic: string) => {
     setFilterTopic((prev) => (prev === topic ? null : topic));
@@ -270,6 +275,22 @@ export function BagPlayerDemo() {
     const file = e.target.files?.[0];
     if (file) void openFile(file);
   };
+
+  const loadSample = useCallback(
+    async (url: string, filename: string) => {
+      try {
+        setError(null);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`);
+        const blob = await res.blob();
+        const file = new File([blob], filename);
+        await openFile(file);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [openFile],
+  );
 
   const totalSeconds = useMemo(() => {
     if (!playerState) return 0;
@@ -332,27 +353,72 @@ export function BagPlayerDemo() {
               ? "Drop a .mcap or .db3 file here, or click to choose"
               : "Loading codecs…"}
         </p>
-        <label
+        <div
           style={{
-            display: "inline-block",
-            padding: "8px 16px",
-            background: "#1f6feb",
-            color: "white",
-            borderRadius: 6,
-            cursor: codecs ? "pointer" : "not-allowed",
-            fontSize: 12,
-            opacity: codecs ? 1 : 0.5,
+            display: "flex",
+            gap: 8,
+            justifyContent: "center",
+            flexWrap: "wrap",
           }}
         >
-          Choose file…
-          <input
-            type="file"
-            accept=".mcap,.db3"
-            onChange={onFileInput}
+          <label
+            style={{
+              display: "inline-block",
+              padding: "8px 16px",
+              background: "#1f6feb",
+              color: "white",
+              borderRadius: 6,
+              cursor: codecs ? "pointer" : "not-allowed",
+              fontSize: 12,
+              opacity: codecs ? 1 : 0.5,
+            }}
+          >
+            Choose file…
+            <input
+              type="file"
+              accept=".mcap,.db3"
+              onChange={onFileInput}
+              disabled={!codecs}
+              style={{ display: "none" }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void loadSample("sample.mcap", "sample.mcap")}
             disabled={!codecs}
-            style={{ display: "none" }}
-          />
-        </label>
+            style={{
+              padding: "8px 16px",
+              background: "transparent",
+              color: "#cad4df",
+              border: "1px solid #2a313c",
+              borderRadius: 6,
+              cursor: codecs ? "pointer" : "not-allowed",
+              fontSize: 12,
+              opacity: codecs ? 1 : 0.5,
+            }}
+            title="80 messages, 5s, 3 topics — Twist / LaserScan / Header"
+          >
+            Try sample.mcap
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadSample("sample.db3", "sample.db3")}
+            disabled={!codecs}
+            style={{
+              padding: "8px 16px",
+              background: "transparent",
+              color: "#cad4df",
+              border: "1px solid #2a313c",
+              borderRadius: 6,
+              cursor: codecs ? "pointer" : "not-allowed",
+              fontSize: 12,
+              opacity: codecs ? 1 : 0.5,
+            }}
+            title="same content as sample.mcap, packaged as a rosbag2 SQLite bag"
+          >
+            Try sample.db3
+          </button>
+        </div>
       </section>
 
       {playerState && (

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/HeoJeongBo/cdr-codec/compare/cdr-codec-v0.1.1...cdr-codec-v0.1.2) (2026-05-02)
+
+
+### Features
+
+* update md ([1a9f74d](https://github.com/HeoJeongBo/cdr-codec/commit/1a9f74d977ef99447eeff8c6d31cdadb639cedd2))
+
 ## 0.1.1 (2026-05-02)
 
 

@@ -1,15 +1,15 @@
 {
   "$schema": "https://unpkg.com/release-it/schema/release-it.json",
   "git": {
-    "commitMessage": "chore: release @heojeongbo/cdr-codec v${version}",
-    "tagName": "cdr-codec-v${version}",
+    "commitMessage": "chore: release @heojeongbo/ts-ros2-msgs v${version}",
+    "tagName": "ts-ros2-msgs-v${version}",
     "requireCleanWorkingDir": true,
     "requireBranch": "main",
     "push": true
   },
   "github": {
     "release": true,
-    "releaseName": "cdr-codec v${version}",
+    "releaseName": "ts-ros2-msgs v${version}",
     "releaseNotes": null
   },
   "npm": {
@@ -18,9 +18,10 @@
   },
   "hooks": {
     "before:init": [
-      "pnpm --filter @heojeongbo/cdr-codec typecheck",
-      "pnpm --filter @heojeongbo/cdr-codec test",
-      "pnpm --filter @heojeongbo/cdr-codec build"
+      "pnpm --filter @heojeongbo/cdr-codec build",
+      "pnpm --filter @heojeongbo/ts-ros2-msgs typecheck",
+      "pnpm --filter @heojeongbo/ts-ros2-msgs test",
+      "pnpm --filter @heojeongbo/ts-ros2-msgs build"
     ],
     "before:release": [],
     "after:bump": ["echo 'Version bumped to ${version}'"],

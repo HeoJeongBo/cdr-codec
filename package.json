@@ -11,11 +11,16 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "check": "biome check .",
-    "release": "pnpm --filter @heojeongbo/cdr-codec release",
-    "release:dry": "pnpm --filter @heojeongbo/cdr-codec release:dry",
-    "release:patch": "pnpm --filter @heojeongbo/cdr-codec release:patch",
-    "release:minor": "pnpm --filter @heojeongbo/cdr-codec release:minor",
-    "release:major": "pnpm --filter @heojeongbo/cdr-codec release:major"
+    "release:cdr-codec": "pnpm --filter @heojeongbo/cdr-codec release",
+    "release:cdr-codec:dry": "pnpm --filter @heojeongbo/cdr-codec release:dry",
+    "release:cdr-codec:patch": "pnpm --filter @heojeongbo/cdr-codec release:patch",
+    "release:cdr-codec:minor": "pnpm --filter @heojeongbo/cdr-codec release:minor",
+    "release:cdr-codec:major": "pnpm --filter @heojeongbo/cdr-codec release:major",
+    "release:ts-ros2-msgs": "pnpm --filter @heojeongbo/ts-ros2-msgs release",
+    "release:ts-ros2-msgs:dry": "pnpm --filter @heojeongbo/ts-ros2-msgs release:dry",
+    "release:ts-ros2-msgs:patch": "pnpm --filter @heojeongbo/ts-ros2-msgs release:patch",
+    "release:ts-ros2-msgs:minor": "pnpm --filter @heojeongbo/ts-ros2-msgs release:minor",
+    "release:ts-ros2-msgs:major": "pnpm --filter @heojeongbo/ts-ros2-msgs release:major"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {

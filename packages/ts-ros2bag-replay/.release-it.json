@@ -1,0 +1,38 @@
+{
+  "$schema": "https://unpkg.com/release-it/schema/release-it.json",
+  "git": {
+    "commitMessage": "chore: release @heojeongbo/ts-ros2bag-replay v${version}",
+    "tagName": "ts-ros2bag-replay-v${version}",
+    "requireCleanWorkingDir": true,
+    "requireBranch": "main",
+    "push": true
+  },
+  "github": {
+    "release": true,
+    "releaseName": "ts-ros2bag-replay v${version}",
+    "releaseNotes": null
+  },
+  "npm": {
+    "publish": true,
+    "publishPath": "."
+  },
+  "hooks": {
+    "before:init": [
+      "pnpm --filter @heojeongbo/cdr-codec build",
+      "pnpm --filter @heojeongbo/ts-ros2bag-replay typecheck",
+      "pnpm --filter @heojeongbo/ts-ros2bag-replay test",
+      "pnpm --filter @heojeongbo/ts-ros2bag-replay build"
+    ],
+    "before:release": [],
+    "after:bump": ["echo 'Version bumped to ${version}'"],
+    "after:release": [
+      "echo 'Successfully released ${name} v${version} to ${repo.repository}.'"
+    ]
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "angular",
+      "infile": "CHANGELOG.md"
+    }
+  }
+}

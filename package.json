@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs build",
-    "dev": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs build && pnpm -r --parallel --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs --filter vite-demo run dev",
+    "build": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs --filter @heojeongbo/ts-ros2bag-replay build",
+    "dev": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs --filter @heojeongbo/ts-ros2bag-replay build && pnpm -r --parallel --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs --filter @heojeongbo/ts-ros2bag-replay --filter vite-demo run dev",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r run test",
     "test:coverage": "pnpm -r run test:coverage",
@@ -21,6 +21,11 @@
     "release:ts-ros2-msgs:patch": "pnpm --filter @heojeongbo/ts-ros2-msgs release:patch",
     "release:ts-ros2-msgs:minor": "pnpm --filter @heojeongbo/ts-ros2-msgs release:minor",
     "release:ts-ros2-msgs:major": "pnpm --filter @heojeongbo/ts-ros2-msgs release:major",
+    "release:ts-ros2bag-replay": "pnpm --filter @heojeongbo/ts-ros2bag-replay release",
+    "release:ts-ros2bag-replay:dry": "pnpm --filter @heojeongbo/ts-ros2bag-replay release:dry",
+    "release:ts-ros2bag-replay:patch": "pnpm --filter @heojeongbo/ts-ros2bag-replay release:patch",
+    "release:ts-ros2bag-replay:minor": "pnpm --filter @heojeongbo/ts-ros2bag-replay release:minor",
+    "release:ts-ros2bag-replay:major": "pnpm --filter @heojeongbo/ts-ros2bag-replay release:major",
     "prepare": "husky"
   },
   "packageManager": "pnpm@9.0.0",

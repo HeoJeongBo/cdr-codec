@@ -29,6 +29,9 @@ importers:
       '@heojeongbo/ts-ros2-msgs':
         specifier: workspace:*
         version: link:../../packages/ts-ros2-msgs
+      '@heojeongbo/ts-ros2bag-replay':
+        specifier: workspace:*
+        version: link:../../packages/ts-ros2bag-replay
       react:
         specifier: ^19.0.0
         version: 19.2.5
@@ -79,6 +82,43 @@ importers:
         specifier: workspace:*
         version: link:../cdr-codec
     devDependencies:
+      '@release-it/conventional-changelog':
+        specifier: ^10.0.6
+        version: 10.0.6(release-it@19.2.4)
+      '@vitest/coverage-v8':
+        specifier: ^4.1.4
+        version: 4.1.5(vitest@4.1.5)
+      release-it:
+        specifier: ^19.2.4
+        version: 19.2.4
+      tsup:
+        specifier: ^8.2.4
+        version: 8.5.1(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.4
+        version: 4.1.5(@vitest/coverage-v8@4.1.5)(vite@8.0.10)
+
+  packages/ts-ros2bag-replay:
+    dependencies:
+      '@heojeongbo/cdr-codec':
+        specifier: workspace:*
+        version: link:../cdr-codec
+      '@mcap/browser':
+        specifier: ^1.1.0
+        version: 1.1.0
+      '@mcap/core':
+        specifier: ^2.2.1
+        version: 2.2.1
+      fzstd:
+        specifier: ^0.1.1
+        version: 0.1.1
+    devDependencies:
+      '@heojeongbo/ts-ros2-msgs':
+        specifier: workspace:*
+        version: link:../ts-ros2-msgs
       '@release-it/conventional-changelog':
         specifier: ^10.0.6
         version: 10.0.6(release-it@19.2.4)
@@ -703,6 +743,10 @@ packages:
     dev: true
     optional: true
 
+  /@foxglove/crc@0.0.3:
+    resolution: {integrity: sha512-DjIZsnL3CyP/yQ/vUYA9cjrD0a/8YXejI5ZmsaOiT16cLfZcTwaCxIN01/ys4jsy+dZCQ/9DnWFn7AEFbiMDaA==}
+    dev: false
+
   /@inquirer/ansi@1.0.2:
     resolution: {integrity: sha512-S8qNSZiYzFd0wAcyG5AXCvUHC5Sr7xpZ9wZ2py9XR88jUz8wooStVx5M6dRzczbBWjic9NP7+rY0Xi7qqK/aMQ==}
     engines: {node: '>=18'}
@@ -940,6 +984,21 @@ packages:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
     dev: true
+
+  /@mcap/browser@1.1.0:
+    resolution: {integrity: sha512-ezBN8bGHOL241w3wai1YQ7H1PdqDIKCyV0jNogjddkx19sB6K6yUKsSinQ9OsUxQdj3SQIPx6One57qCo7/R3Q==}
+    engines: {node: '>=14.0.0'}
+    dependencies:
+      tslib: 2.8.1
+    dev: false
+
+  /@mcap/core@2.2.1:
+    resolution: {integrity: sha512-Qj0NSqxmFA6DlwYZqlnYHApcQl6jaVAFcUlYxFJCRKK6dymJAfdw98EIGnzAxLi/xw6rjQ8GFRyVzuoswFn+UA==}
+    dependencies:
+      '@foxglove/crc': 0.0.3
+      heap-js: 2.7.1
+      tslib: 2.8.1
+    dev: false
 
   /@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0):
     resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
@@ -2367,6 +2426,10 @@ packages:
     dev: true
     optional: true
 
+  /fzstd@0.1.1:
+    resolution: {integrity: sha512-dkuVSOKKwh3eas5VkJy1AW1vFpet8TA/fGmVA5krThl8YcOVE/8ZIoEA1+U1vEn5ckxxhLirSdY837azmbaNHA==}
+    dev: false
+
   /get-east-asian-width@1.5.0:
     resolution: {integrity: sha512-CQ+bEO+Tva/qlmw24dCejulK5pMzVnUOFOijVogd3KQs07HnRIgp8TGipvCCRT06xeYEbpbgwaCxglFyiuIcmA==}
     engines: {node: '>=18'}
@@ -2430,6 +2493,11 @@ packages:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
     dev: true
+
+  /heap-js@2.7.1:
+    resolution: {integrity: sha512-EQfezRg0NCZGNlhlDR3Evrw1FVL2G3LhU7EgPoxufQKruNBSYA8MiRPHeWbU+36o+Fhel0wMwM+sLEiBAlNLJA==}
+    engines: {node: '>=10.0.0'}
+    dev: false
 
   /hosted-git-info@8.1.0:
     resolution: {integrity: sha512-Rw/B2DNQaPBICNXEm8balFz9a6WpZrkCGpcWFpy7nCj+NyhSdqXipmfvtmWt9xGfp0wZnBxB+iVpLmQMYt47Tw==}
@@ -3657,7 +3725,6 @@ packages:
 
   /tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
-    dev: true
 
   /tsup@8.5.1(typescript@5.9.3):
     resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}

@@ -1,0 +1,25 @@
+{
+  "name": "cdr-codec-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs build",
+    "dev": "pnpm --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs build && pnpm -r --parallel --filter @heojeongbo/cdr-codec --filter @heojeongbo/ts-ros2-msgs --filter vite-demo run dev",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r run test",
+    "test:coverage": "pnpm -r run test:coverage",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "release": "pnpm --filter @heojeongbo/cdr-codec release",
+    "release:dry": "pnpm --filter @heojeongbo/cdr-codec release:dry",
+    "release:patch": "pnpm --filter @heojeongbo/cdr-codec release:patch",
+    "release:minor": "pnpm --filter @heojeongbo/cdr-codec release:minor",
+    "release:major": "pnpm --filter @heojeongbo/cdr-codec release:major"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.11",
+    "typescript": "^5.5.4"
+  }
+}

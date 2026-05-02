@@ -1,0 +1,109 @@
+{
+  "name": "@heojeongbo/ts-ros2-msgs",
+  "version": "0.1.0",
+  "description": "Hand-written DecodePlans + TypeScript interfaces for ROS 2 standard messages, on top of @heojeongbo/cdr-codec.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./builtin_interfaces": {
+      "types": "./dist/builtin_interfaces.d.ts",
+      "import": "./dist/builtin_interfaces.js"
+    },
+    "./std_msgs": {
+      "types": "./dist/std_msgs.d.ts",
+      "import": "./dist/std_msgs.js"
+    },
+    "./geometry_msgs": {
+      "types": "./dist/geometry_msgs.d.ts",
+      "import": "./dist/geometry_msgs.js"
+    },
+    "./sensor_msgs": {
+      "types": "./dist/sensor_msgs.d.ts",
+      "import": "./dist/sensor_msgs.js"
+    },
+    "./nav_msgs": {
+      "types": "./dist/nav_msgs.d.ts",
+      "import": "./dist/nav_msgs.js"
+    },
+    "./tf2_msgs": {
+      "types": "./dist/tf2_msgs.d.ts",
+      "import": "./dist/tf2_msgs.js"
+    },
+    "./rosgraph_msgs": {
+      "types": "./dist/rosgraph_msgs.d.ts",
+      "import": "./dist/rosgraph_msgs.js"
+    },
+    "./diagnostic_msgs": {
+      "types": "./dist/diagnostic_msgs.d.ts",
+      "import": "./dist/diagnostic_msgs.js"
+    },
+    "./action_msgs": {
+      "types": "./dist/action_msgs.d.ts",
+      "import": "./dist/action_msgs.js"
+    },
+    "./lifecycle_msgs": {
+      "types": "./dist/lifecycle_msgs.d.ts",
+      "import": "./dist/lifecycle_msgs.js"
+    },
+    "./unique_identifier_msgs": {
+      "types": "./dist/unique_identifier_msgs.d.ts",
+      "import": "./dist/unique_identifier_msgs.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "ros2",
+    "ros",
+    "messages",
+    "msgs",
+    "std_msgs",
+    "geometry_msgs",
+    "sensor_msgs",
+    "nav_msgs",
+    "cdr",
+    "codec"
+  ],
+  "author": "heojeongbo <heojungbo@gmail.com> (https://github.com/HeoJeongBo)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HeoJeongBo/cdr-codec.git",
+    "directory": "packages/ts-ros2-msgs"
+  },
+  "homepage": "https://github.com/HeoJeongBo/cdr-codec#readme",
+  "bugs": {
+    "url": "https://github.com/HeoJeongBo/cdr-codec/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@heojeongbo/cdr-codec": "workspace:*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.4",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^4.1.4"
+  }
+}

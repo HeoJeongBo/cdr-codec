@@ -1,0 +1,59 @@
+import { createCodec } from "../shared/codec";
+
+// lifecycle_msgs/Transition
+//   uint8 TRANSITION_CREATE                  =  0
+//   uint8 TRANSITION_CONFIGURE               =  1
+//   uint8 TRANSITION_CLEANUP                 =  2
+//   uint8 TRANSITION_ACTIVATE                =  3
+//   uint8 TRANSITION_DEACTIVATE              =  4
+//   uint8 TRANSITION_UNCONFIGURED_SHUTDOWN   =  5
+//   uint8 TRANSITION_INACTIVE_SHUTDOWN       =  6
+//   uint8 TRANSITION_ACTIVE_SHUTDOWN         =  7
+//   uint8 TRANSITION_DESTROY                 =  8
+//   uint8 TRANSITION_ON_CONFIGURE_SUCCESS    = 10
+//   uint8 TRANSITION_ON_CONFIGURE_FAILURE    = 11
+//   uint8 TRANSITION_ON_CONFIGURE_ERROR      = 12
+//   uint8 TRANSITION_ON_CLEANUP_SUCCESS      = 20
+//   uint8 TRANSITION_ON_CLEANUP_FAILURE      = 21
+//   uint8 TRANSITION_ON_CLEANUP_ERROR        = 22
+//   uint8 TRANSITION_ON_ACTIVATE_SUCCESS     = 30
+//   uint8 TRANSITION_ON_ACTIVATE_FAILURE     = 31
+//   uint8 TRANSITION_ON_ACTIVATE_ERROR       = 32
+//   uint8 TRANSITION_ON_DEACTIVATE_SUCCESS   = 40
+//   uint8 TRANSITION_ON_DEACTIVATE_FAILURE   = 41
+//   uint8 TRANSITION_ON_DEACTIVATE_ERROR     = 42
+//   uint8 TRANSITION_ON_SHUTDOWN_SUCCESS     = 50
+//   uint8 TRANSITION_ON_SHUTDOWN_FAILURE     = 51
+//   uint8 TRANSITION_ON_SHUTDOWN_ERROR       = 52
+//   uint8 TRANSITION_ON_ERROR_SUCCESS        = 60
+//   uint8 TRANSITION_ON_ERROR_FAILURE        = 61
+//   uint8 TRANSITION_ON_ERROR_ERROR          = 62
+//   uint8 TRANSITION_CALLBACK_SUCCESS        = 97
+//   uint8 TRANSITION_CALLBACK_FAILURE        = 98
+//   uint8 TRANSITION_CALLBACK_ERROR          = 99
+//   uint8  id
+//   string label
+export const LIFECYCLE_TRANSITION = {
+  TRANSITION_CREATE: 0,
+  TRANSITION_CONFIGURE: 1,
+  TRANSITION_CLEANUP: 2,
+  TRANSITION_ACTIVATE: 3,
+  TRANSITION_DEACTIVATE: 4,
+  TRANSITION_UNCONFIGURED_SHUTDOWN: 5,
+  TRANSITION_INACTIVE_SHUTDOWN: 6,
+  TRANSITION_ACTIVE_SHUTDOWN: 7,
+  TRANSITION_DESTROY: 8,
+} as const;
+
+export interface Transition {
+  id: number;
+  label: string;
+}
+
+export const Transition = createCodec<Transition>("lifecycle_msgs/Transition", {
+  type: "struct",
+  fields: [
+    { name: "id", type: { type: "uint8" } },
+    { name: "label", type: { type: "string" } },
+  ],
+});

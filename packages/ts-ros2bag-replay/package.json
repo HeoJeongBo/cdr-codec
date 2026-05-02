@@ -62,7 +62,8 @@
     "@heojeongbo/cdr-codec": "workspace:*",
     "@mcap/browser": "^1.1.0",
     "@mcap/core": "^2.2.1",
-    "fzstd": "^0.1.1"
+    "fzstd": "^0.1.1",
+    "sql.js": "^1.14.1"
   },
   "peerDependencies": {
     "@heojeongbo/ts-ros2-msgs": "workspace:*"
@@ -75,6 +76,7 @@
   "devDependencies": {
     "@heojeongbo/ts-ros2-msgs": "workspace:*",
     "@release-it/conventional-changelog": "^10.0.6",
+    "@types/sql.js": "^1.4.11",
     "@vitest/coverage-v8": "^4.1.4",
     "release-it": "^19.2.4",
     "tsup": "^8.2.4",

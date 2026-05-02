@@ -6,6 +6,7 @@ import {
   type TopicInfo,
 } from "@heojeongbo/ts-ros2bag-replay";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 
 const MUTED = { color: "#8b949e" } as const;
 
@@ -13,6 +14,12 @@ const MAX_LOG = 80;
 
 interface LogEntry {
   readonly id: number;
+  readonly topic: string;
+  readonly logTime: bigint;
+  readonly preview: string;
+}
+
+interface LatestEntry {
   readonly topic: string;
   readonly logTime: bigint;
   readonly preview: string;
@@ -33,7 +40,7 @@ function nsToSec(t: bigint, base: bigint): string {
   return sec.toFixed(2);
 }
 
-function previewMessage(value: unknown): string {
+function previewMessage(value: unknown, max = 200): string {
   let str: string;
   try {
     str = JSON.stringify(value, (_, v) =>
@@ -42,7 +49,7 @@ function previewMessage(value: unknown): string {
   } catch {
     str = String(value);
   }
-  return str.length > 200 ? `${str.slice(0, 200)}…` : str;
+  return str.length > max ? `${str.slice(0, max)}…` : str;
 }
 
 export function BagPlayerDemo() {
@@ -50,6 +57,8 @@ export function BagPlayerDemo() {
   const [error, setError] = useState<string | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
+  const [filterTopic, setFilterTopic] = useState<string | null>(null);
+  const [latestByTopic, setLatestByTopic] = useState<Record<string, LatestEntry>>({});
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [scrubTime, setScrubTime] = useState<bigint>(0n);
@@ -106,6 +115,52 @@ export function BagPlayerDemo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const setupSubscriptions = useCallback(
+    (player: BagPlayer, topics: ReadonlySet<string>) => {
+      // Drop existing.
+      for (const [topic, unsub] of subsRef.current) {
+        if (!topics.has(topic)) {
+          unsub();
+          subsRef.current.delete(topic);
+          setLatestByTopic((prev) => {
+            if (!(topic in prev)) return prev;
+            const next = { ...prev };
+            delete next[topic];
+            return next;
+          });
+        }
+      }
+      // Add new.
+      for (const topic of topics) {
+        if (subsRef.current.has(topic)) continue;
+        const unsub = player.subscribe(topic, (msg, ev: BagEvent) => {
+          const id = ++logIdRef.current;
+          const preview = previewMessage(msg);
+          const logEntry: LogEntry = {
+            id,
+            topic: ev.topic,
+            logTime: ev.logTime,
+            preview,
+          };
+          setLog((prev) => {
+            const next = prev.length >= MAX_LOG ? prev.slice(-MAX_LOG + 1) : prev;
+            return [...next, logEntry];
+          });
+          setLatestByTopic((prev) => ({
+            ...prev,
+            [ev.topic]: {
+              topic: ev.topic,
+              logTime: ev.logTime,
+              preview: previewMessage(msg, 400),
+            },
+          }));
+        });
+        subsRef.current.set(topic, unsub);
+      }
+    },
+    [],
+  );
+
   const openFile = useCallback(
     async (file: File) => {
       if (!codecs) return;
@@ -117,11 +172,14 @@ export function BagPlayerDemo() {
       setPlaying(false);
       setLog([]);
       setActiveTopics(new Set());
+      setLatestByTopic({});
+      setFilterTopic(null);
 
       try {
         const player = await BagPlayer.open({
           source: file,
           codecs,
+          sqlJsLocateFile: () => sqlWasmUrl,
           onError: (err) => {
             setError(`Playback stopped: ${err.message}`);
             setPlaying(false);
@@ -148,38 +206,7 @@ export function BagPlayerDemo() {
         setError(e instanceof Error ? e.message : String(e));
       }
     },
-    [codecs, playerState],
-  );
-
-  const setupSubscriptions = useCallback(
-    (player: BagPlayer, topics: ReadonlySet<string>) => {
-      // Drop existing.
-      for (const [topic, unsub] of subsRef.current) {
-        if (!topics.has(topic)) {
-          unsub();
-          subsRef.current.delete(topic);
-        }
-      }
-      // Add new.
-      for (const topic of topics) {
-        if (subsRef.current.has(topic)) continue;
-        const unsub = player.subscribe(topic, (msg, ev: BagEvent) => {
-          const id = ++logIdRef.current;
-          const entry: LogEntry = {
-            id,
-            topic: ev.topic,
-            logTime: ev.logTime,
-            preview: previewMessage(msg),
-          };
-          setLog((prev) => {
-            const next = prev.length >= MAX_LOG ? prev.slice(-MAX_LOG + 1) : prev;
-            return [...next, entry];
-          });
-        });
-        subsRef.current.set(topic, unsub);
-      }
-    },
-    [],
+    [codecs, playerState, setupSubscriptions],
   );
 
   const toggleTopic = useCallback(
@@ -195,6 +222,10 @@ export function BagPlayerDemo() {
     },
     [playerState, setupSubscriptions],
   );
+
+  const toggleFilter = useCallback((topic: string) => {
+    setFilterTopic((prev) => (prev === topic ? null : topic));
+  }, []);
 
   const handlePlayPause = () => {
     if (!playerState) return;
@@ -248,13 +279,21 @@ export function BagPlayerDemo() {
     ? Number(scrubTime - playerState.bagStartTime) / 1e9
     : 0;
 
+  const visibleLog = filterTopic ? log.filter((e) => e.topic === filterTopic) : log;
+  const latestEntries = useMemo(() => {
+    return Array.from(activeTopics)
+      .map((t) => latestByTopic[t])
+      .filter((e): e is LatestEntry => Boolean(e))
+      .sort((a, b) => a.topic.localeCompare(b.topic));
+  }, [activeTopics, latestByTopic]);
+
   return (
     <>
-      <h2>MCAP rosbag player</h2>
+      <h2>ROS 2 rosbag player</h2>
       <p style={{ ...MUTED, fontSize: 12, margin: "0 0 16px" }}>
-        Drop a <code>.mcap</code> file below. The player reads its index, lists the
-        topics, and replays decoded ROS 2 messages in real wall-clock time. Built on{" "}
-        <code>@heojeongbo/ts-ros2bag-replay</code>.
+        Drop a <code>.mcap</code> or rosbag2 <code>.db3</code> file below. The player
+        reads its index, lists topics, and replays decoded ROS 2 messages on real
+        wall-clock time. Built on <code>@heojeongbo/ts-ros2bag-replay</code>.
       </p>
 
       {error && (
@@ -290,7 +329,7 @@ export function BagPlayerDemo() {
           {playerState
             ? `loaded — ${playerState.topics.length} topics, ${totalSeconds.toFixed(2)}s long`
             : codecs
-              ? "Drop a .mcap file here, or click to choose"
+              ? "Drop a .mcap or .db3 file here, or click to choose"
               : "Loading codecs…"}
         </p>
         <label
@@ -308,7 +347,7 @@ export function BagPlayerDemo() {
           Choose file…
           <input
             type="file"
-            accept=".mcap"
+            accept=".mcap,.db3"
             onChange={onFileInput}
             disabled={!codecs}
             style={{ display: "none" }}
@@ -373,11 +412,80 @@ export function BagPlayerDemo() {
             </div>
           </section>
 
+          {latestEntries.length > 0 && (
+            <section>
+              <h3>Latest values per subscribed topic</h3>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {latestEntries.map((entry) => (
+                  <div
+                    key={entry.topic}
+                    style={{
+                      background: "#0a0d12",
+                      border: `1px solid ${
+                        filterTopic === entry.topic ? "#1f6feb" : "#1a1f27"
+                      }`,
+                      borderRadius: 6,
+                      padding: "8px 10px",
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => toggleFilter(entry.topic)}
+                    title="click to filter the log to just this topic"
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        gap: 8,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span style={{ color: "#79c0ff", fontWeight: 600 }}>
+                        {entry.topic}
+                      </span>
+                      <span
+                        style={{
+                          ...MUTED,
+                          fontSize: 10,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {nsToSec(entry.logTime, playerState.bagStartTime)}s
+                      </span>
+                    </div>
+                    <pre
+                      style={{
+                        margin: 0,
+                        padding: 0,
+                        background: "transparent",
+                        border: "none",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-all",
+                        color: "#cad4df",
+                        maxHeight: 80,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {entry.preview}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h3>Topics</h3>
             <p style={{ ...MUTED, fontSize: 12, margin: "0 0 12px" }}>
-              Toggle topics to subscribe / unsubscribe. Decodable means a built-in codec
-              was found for the schema.
+              Checkbox toggles subscribe; clicking the topic name filters the log to just
+              that topic. Decodable means a built-in codec was found.
             </p>
             <div
               style={{
@@ -387,41 +495,55 @@ export function BagPlayerDemo() {
                 fontSize: 12,
               }}
             >
-              {playerState.topics.map((t) => (
-                <label
-                  key={t.name}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 1fr 1fr auto",
-                    gap: 12,
-                    alignItems: "center",
-                    padding: "4px 8px",
-                    borderRadius: 4,
-                    cursor: t.hasCodec ? "pointer" : "not-allowed",
-                    opacity: t.hasCodec ? 1 : 0.55,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={activeTopics.has(t.name)}
-                    onChange={() => toggleTopic(t.name)}
-                    disabled={!t.hasCodec}
-                  />
-                  <span style={{ fontFamily: '"SF Mono", Menlo, monospace' }}>
-                    {t.name}
-                  </span>
-                  <span style={{ ...MUTED, fontSize: 11 }}>{t.schemaName}</span>
-                  <span
+              {playerState.topics.map((t) => {
+                const active = filterTopic === t.name;
+                return (
+                  <div
+                    key={t.name}
                     style={{
-                      ...MUTED,
-                      fontSize: 11,
-                      fontVariantNumeric: "tabular-nums",
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr 1fr auto",
+                      gap: 12,
+                      alignItems: "center",
+                      padding: "4px 8px",
+                      borderRadius: 4,
+                      background: active ? "#11253a" : undefined,
+                      opacity: t.hasCodec ? 1 : 0.55,
                     }}
                   >
-                    {t.messageCount} msg{t.hasCodec ? "" : " (no codec)"}
-                  </span>
-                </label>
-              ))}
+                    <input
+                      type="checkbox"
+                      checked={activeTopics.has(t.name)}
+                      onChange={() => toggleTopic(t.name)}
+                      disabled={!t.hasCodec}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toggleFilter(t.name)}
+                      style={{
+                        all: "unset",
+                        fontFamily: '"SF Mono", Menlo, monospace',
+                        cursor: "pointer",
+                        color: active ? "#79c0ff" : "#cad4df",
+                        textDecoration: active ? "underline" : "none",
+                      }}
+                      title="click to filter the log to just this topic"
+                    >
+                      {t.name}
+                    </button>
+                    <span style={{ ...MUTED, fontSize: 11 }}>{t.schemaName}</span>
+                    <span
+                      style={{
+                        ...MUTED,
+                        fontSize: 11,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {t.messageCount} msg{t.hasCodec ? "" : " (no codec)"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -431,18 +553,45 @@ export function BagPlayerDemo() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                gap: 12,
                 marginBottom: 8,
               }}
             >
-              <h3 style={{ margin: 0 }}>Message log (last {MAX_LOG})</h3>
-              <label style={{ ...MUTED, fontSize: 11, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={autoScroll}
-                  onChange={(e) => setAutoScroll(e.target.checked)}
-                />{" "}
-                auto-scroll
-              </label>
+              <h3 style={{ margin: 0 }}>
+                Message log (last {MAX_LOG})
+                {filterTopic && (
+                  <span style={{ ...MUTED, fontWeight: 400, marginLeft: 8 }}>
+                    — filter: <span style={{ color: "#79c0ff" }}>{filterTopic}</span>
+                  </span>
+                )}
+              </h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {filterTopic && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterTopic(null)}
+                    style={{
+                      background: "transparent",
+                      color: "#cad4df",
+                      border: "1px solid #2a313c",
+                      borderRadius: 4,
+                      padding: "2px 8px",
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                  >
+                    clear filter
+                  </button>
+                )}
+                <label style={{ ...MUTED, fontSize: 11, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={autoScroll}
+                    onChange={(e) => setAutoScroll(e.target.checked)}
+                  />{" "}
+                  auto-scroll
+                </label>
+              </div>
             </div>
             <div
               style={{
@@ -456,12 +605,14 @@ export function BagPlayerDemo() {
                 fontSize: 11,
               }}
             >
-              {log.length === 0 ? (
+              {visibleLog.length === 0 ? (
                 <p style={{ ...MUTED, margin: 0, padding: 8 }}>
-                  No messages yet — press play.
+                  {filterTopic
+                    ? `No messages for ${filterTopic} yet.`
+                    : "No messages yet — press play."}
                 </p>
               ) : (
-                log.map((entry) => (
+                visibleLog.map((entry) => (
                   <div
                     key={entry.id}
                     style={{

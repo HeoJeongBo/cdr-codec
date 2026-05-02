@@ -1,7 +1,10 @@
 import type { RosMessageCodec } from "@heojeongbo/ts-ros2-msgs";
-import { type DecompressHandlers, McapIndexedReader } from "@mcap/core";
+import type { DecompressHandlers } from "@mcap/core";
 import type { CodecRegistry } from "./codecs";
-import { normalizeSchemaName } from "./schema";
+import { type Db3OpenOptions, openDb3Source } from "./sources/db3-source";
+import { detectFormat } from "./sources/detect";
+import { openMcapSource } from "./sources/mcap-source";
+import type { BagSourceReader, ChannelInfo, RawMessage } from "./sources/types";
 import {
   currentBagTime,
   delayMsFor,
@@ -30,9 +33,15 @@ export interface BagPlayerOptions {
   /**
    * Extra handlers for compressed MCAP chunks. `zstd` is built-in (pure-JS via
    * `fzstd`); pass extras here for `lz4` / `bz2` if your bag uses them. User
-   * handlers override the built-ins for the same key.
+   * handlers override the built-ins for the same key. Ignored for `.db3`.
    */
   readonly decompressHandlers?: DecompressHandlers;
+  /**
+   * Forwarded to sql.js when opening a `.db3` bag. In Vite, supply
+   * `() => import.meta.url`-style paths or use `?url` on
+   * `sql.js/dist/sql-wasm.wasm` to give sql.js a usable URL for its WASM file.
+   */
+  readonly sqlJsLocateFile?: Db3OpenOptions["locateFile"];
   /**
    * Called when the playback loop fails (e.g. a compressed chunk uses an
    * algorithm we don't have a handler for). Receives the error; player state
@@ -65,21 +74,6 @@ interface Subscription<T = unknown> {
   readonly handler: BagHandler<T>;
 }
 
-interface ChannelMeta {
-  readonly topic: string;
-  readonly schemaName: string;
-}
-
-type IndexedReader = McapIndexedReader;
-
-interface McapRecord {
-  readonly channelId: number;
-  readonly logTime: bigint;
-  readonly publishTime: bigint;
-  readonly sequence: number;
-  readonly data: Uint8Array;
-}
-
 function sourceToBlob(source: BagSource): Blob {
   if (source instanceof Blob) return source;
   if (source instanceof ArrayBuffer) return new Blob([source]);
@@ -94,32 +88,15 @@ function sourceToBlob(source: BagSource): Blob {
   throw new TypeError("BagPlayer.open: unsupported source type");
 }
 
-async function builtInDecompressHandlers(): Promise<DecompressHandlers> {
-  // Pure-JS zstd via fzstd — no WASM, browser-friendly. lz4/bz2 are not
-  // built-in (no good pure-JS option that matches MCAP's block format
-  // out-of-the-box); callers can plug their own handlers via
-  // `BagPlayerOptions.decompressHandlers`.
-  const { decompress } = await import("fzstd");
-  return {
-    zstd: (buffer, decompressedSize) => {
-      const out = new Uint8Array(Number(decompressedSize));
-      const written = decompress(buffer, out);
-      return written.length === out.length ? out : written;
-    },
-  };
-}
-
-async function openReader(
+async function openSource(
   blob: Blob,
-  userHandlers?: DecompressHandlers,
-): Promise<IndexedReader> {
-  const { BlobReadable } = await import("@mcap/browser");
-  const readable = new BlobReadable(blob);
-  const builtIn = await builtInDecompressHandlers();
-  return McapIndexedReader.Initialize({
-    readable,
-    decompressHandlers: { ...builtIn, ...(userHandlers ?? {}) },
-  });
+  options: BagPlayerOptions,
+): Promise<BagSourceReader> {
+  const format = await detectFormat(blob);
+  if (format === "mcap") {
+    return openMcapSource(blob, options.decompressHandlers);
+  }
+  return openDb3Source(blob, { locateFile: options.sqlJsLocateFile });
 }
 
 export class BagPlayer {
@@ -127,8 +104,7 @@ export class BagPlayer {
   readonly startTime: bigint;
   readonly endTime: bigint;
 
-  private readonly reader: IndexedReader;
-  private readonly channels: ReadonlyMap<number, ChannelMeta>;
+  private readonly source: BagSourceReader;
   private readonly codecs?: CodecRegistry;
   private readonly unknownPolicy: UnknownSchemaPolicy;
   private readonly onError?: (err: Error) => void;
@@ -143,19 +119,15 @@ export class BagPlayer {
   private currentRun: AbortController | null = null;
 
   private constructor(
-    reader: IndexedReader,
-    channels: ReadonlyMap<number, ChannelMeta>,
+    source: BagSourceReader,
     topics: readonly TopicInfo[],
-    startTime: bigint,
-    endTime: bigint,
     options: BagPlayerOptions,
   ) {
-    this.reader = reader;
-    this.channels = channels;
+    this.source = source;
     this.topics = topics;
-    this.startTime = startTime;
-    this.endTime = endTime;
-    this.cursorNs = startTime;
+    this.startTime = source.startTime;
+    this.endTime = source.endTime;
+    this.cursorNs = source.startTime;
     this.codecs = options.codecs;
     this.unknownPolicy = options.unknownSchema ?? "warn";
     this.onError = options.onError;
@@ -163,33 +135,18 @@ export class BagPlayer {
   }
 
   static async open(options: BagPlayerOptions): Promise<BagPlayer> {
-    const reader = await openReader(
-      sourceToBlob(options.source),
-      options.decompressHandlers,
-    );
-
-    const channels = new Map<number, ChannelMeta>();
+    const source = await openSource(sourceToBlob(options.source), options);
     const topics: TopicInfo[] = [];
-    const counts = reader.statistics?.channelMessageCounts;
-
-    for (const [channelId, channel] of reader.channelsById) {
-      const schema = reader.schemasById.get(channel.schemaId);
-      const rawSchemaName = schema?.name ?? "";
-      const schemaName = normalizeSchemaName(rawSchemaName);
-      channels.set(channelId, { topic: channel.topic, schemaName });
-      const count = counts?.get(channelId);
+    for (const [channelId, info] of source.channels) {
+      const count = source.messageCounts.get(channelId) ?? 0;
       topics.push({
-        name: channel.topic,
-        schemaName,
-        messageCount: count != null ? Number(count) : 0,
-        hasCodec: options.codecs?.has(schemaName) ?? false,
+        name: info.topic,
+        schemaName: info.schemaName,
+        messageCount: count,
+        hasCodec: options.codecs?.has(info.schemaName) ?? false,
       });
     }
-
-    const startTime = reader.statistics?.messageStartTime ?? 0n;
-    const endTime = reader.statistics?.messageEndTime ?? 0n;
-
-    return new BagPlayer(reader, channels, topics, startTime, endTime, options);
+    return new BagPlayer(source, topics, options);
   }
 
   get currentTime(): bigint {
@@ -273,6 +230,7 @@ export class BagPlayer {
     this.currentRun?.abort(new Error("disposed"));
     this.currentRun = null;
     this.subscriptions.clear();
+    void Promise.resolve(this.source.close()).catch(() => {});
   }
 
   private addSubscription(sub: Subscription): () => void {
@@ -292,8 +250,8 @@ export class BagPlayer {
   private async runLoop(signal: AbortSignal): Promise<void> {
     const startNs = this.cursorNs;
     try {
-      const iter = this.reader.readMessages({ startTime: startNs });
-      for await (const record of iter as AsyncIterable<McapRecord>) {
+      const iter = this.source.readMessages({ startTime: startNs });
+      for await (const record of iter) {
         if (signal.aborted) return;
         if (this.timeline) {
           const delay = delayMsFor(this.timeline, record.logTime);
@@ -318,11 +276,10 @@ export class BagPlayer {
     }
   }
 
-  private dispatch(record: McapRecord): void {
-    const channel = this.channels.get(record.channelId);
+  private dispatch(record: RawMessage): void {
+    const channel = this.source.channels.get(record.channelId);
     if (!channel) return;
 
-    let dispatched = false;
     let decoded: unknown;
     let decodedCodec: RosMessageCodec<unknown> | undefined;
 
@@ -349,13 +306,10 @@ export class BagPlayer {
         publishTime: record.publishTime,
         sequence: record.sequence,
       });
-      dispatched = true;
     }
-
-    void dispatched;
   }
 
-  private notifyUnknown(channel: ChannelMeta): void {
+  private notifyUnknown(channel: ChannelInfo): void {
     if (this.unknownPolicy === "skip") return;
     if (typeof this.unknownPolicy === "function") {
       this.unknownPolicy({ schemaName: channel.schemaName, topic: channel.topic });

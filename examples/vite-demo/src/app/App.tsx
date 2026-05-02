@@ -20,7 +20,7 @@ const PAGES: ReadonlyArray<{ id: PageId; label: string }> = [
   { id: "getting-started", label: "Getting started" },
   { id: "primitives", label: "Primitives + hex dump" },
   { id: "worker", label: "Worker (transferable)" },
-  { id: "bag-player", label: "MCAP rosbag player" },
+  { id: "bag-player", label: "ROS 2 rosbag player" },
   { id: "ros2", label: "ROS 2 — geometry_msgs/Twist" },
   { id: "binary-samples", label: "ROS 2 binary samples" },
   { id: "custom-message", label: "Custom message" },

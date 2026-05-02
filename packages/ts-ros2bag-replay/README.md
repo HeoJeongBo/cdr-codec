@@ -1,9 +1,11 @@
 # @heojeongbo/ts-ros2bag-replay
 
-MCAP rosbag reader + timeline player. Drop a `.mcap` file in, get **typed ROS 2
-messages** out — at real wall-clock pace, with `play` / `pause` / `seek` /
-`setSpeed`. Built on top of [`@mcap/core`](https://github.com/foxglove/mcap)
-and [`@heojeongbo/cdr-codec`](../cdr-codec).
+ROS 2 rosbag replay — reads **MCAP** *or* **rosbag2 SQLite (`.db3`)** files,
+delivers **typed ROS 2 messages** at real wall-clock pace, with `play` /
+`pause` / `seek` / `setSpeed`. Built on top of
+[`@mcap/core`](https://github.com/foxglove/mcap),
+[`sql.js`](https://github.com/sql-js/sql.js), and
+[`@heojeongbo/cdr-codec`](../cdr-codec).
 
 ## Install
 
@@ -20,11 +22,15 @@ own custom messages (via `createCodec`), you can skip it.
 ```ts
 import { BagPlayer, builtInCodecs } from "@heojeongbo/ts-ros2bag-replay";
 import { Twist } from "@heojeongbo/ts-ros2-msgs/geometry_msgs";
+// for `.db3` in Vite: tell sql.js where its WASM lives
+import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 
 // In a browser: wire up file input / drag-drop and pass the File.
+// `.mcap` and `.db3` are auto-detected from magic bytes.
 const player = await BagPlayer.open({
   source: file,                    // File | Blob | ArrayBuffer | Uint8Array
   codecs: await builtInCodecs(),   // 51 standard ROS 2 messages, indexed by name
+  sqlJsLocateFile: () => sqlWasmUrl,  // only needed for .db3 in browser bundlers
 });
 
 console.log(player.topics);        // { name, schemaName, messageCount, hasCodec }[]
@@ -63,12 +69,15 @@ interface BagPlayerOptions {
   speed?: number;                                            // default 1
   unknownSchema?: "skip" | "warn" | (info => void);          // default "warn"
   decompressHandlers?: DecompressHandlers;                   // extras for lz4 / bz2
+  sqlJsLocateFile?: (filename: string) => string;            // sql.js wasm path (.db3)
   onError?: (err: Error) => void;                            // playback failure
 }
 ```
 
-Returns a `Promise<BagPlayer>`. Reads the MCAP file's index (not the full
-contents) so opening is fast even for large bags.
+Returns a `Promise<BagPlayer>`. Auto-detects MCAP vs SQLite from the file's
+magic bytes. For MCAP it reads the index (no full scan). For `.db3` it loads
+the database into memory via sql.js and reads `topics` / `messages` rows in
+order.
 
 ### `player.topics`, `startTime`, `endTime`, `currentTime`, `speed`, `playing`
 
@@ -126,11 +135,13 @@ decompressed.
 
 ## Limitations (v1)
 
-- **MCAP only.** ROS 2 `.db3` (rosbag2 SQLite storage) is not supported. Most
-  modern ROS 2 setups can output MCAP via the [rosbag2 MCAP storage plugin](https://github.com/ros-tooling/rosbag2_storage_mcap).
+- **`.db3` is single-file.** Modern rosbag2 (Humble+) embeds the YAML metadata
+  inside the SQLite file's `metadata` table, so a bare `.db3` plays. Split bags
+  (`bag_0.db3` + `bag_1.db3`) and external `metadata.yaml`-only setups are
+  deferred to v2.
 - **Built-in messages only.** Schemas that aren't in your `codecs` map are
   skipped (with a one-time console warning by default). Future versions will
-  parse the schema text inside MCAP at runtime so any message decodes.
+  parse the schema text inside the bag at runtime so any message decodes.
 - **`zstd` is built-in. `lz4` / `bz2` need user handlers.** zstd-compressed
   bags decompress out of the box via [`fzstd`](https://github.com/101arrowz/fzstd)
   (pure-JS, no WASM). For lz4 / bz2 chunks, pass your own handlers:
@@ -152,7 +163,8 @@ decompressed.
 
 ## Acknowledgements
 
-- [`@mcap/core`](https://github.com/foxglove/mcap) — Foxglove's TypeScript MCAP SDK does the heavy lifting.
+- [`@mcap/core`](https://github.com/foxglove/mcap) — Foxglove's TypeScript MCAP SDK handles the MCAP path.
+- [`sql.js`](https://github.com/sql-js/sql.js) — SQLite compiled to WebAssembly handles the `.db3` path.
 - The wire-format and codec layer is [`@heojeongbo/cdr-codec`](../cdr-codec).
 
 ## License

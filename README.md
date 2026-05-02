@@ -10,7 +10,7 @@ published packages.
 | --- | --- |
 | [`@heojeongbo/cdr-codec`](./packages/cdr-codec) | CDR encoder/decoder, plan-based runner, and Web Worker layer. Schema-agnostic. |
 | [`@heojeongbo/ts-ros2-msgs`](./packages/ts-ros2-msgs) | Hand-written `DecodePlan`s and TypeScript interfaces for the most common ROS 2 standard messages, layered on top of `@heojeongbo/cdr-codec`. |
-| [`@heojeongbo/ts-ros2bag-replay`](./packages/ts-ros2bag-replay) | MCAP rosbag reader + timeline replay. Replays a `.mcap` file as typed ROS 2 messages on real wall-clock time, with `play` / `pause` / `seek` / `setSpeed`. |
+| [`@heojeongbo/ts-ros2bag-replay`](./packages/ts-ros2bag-replay) | ROS 2 rosbag replay — reads MCAP **or** rosbag2 SQLite (`.db3`) and emits typed messages on real wall-clock time, with `play` / `pause` / `seek` / `setSpeed`. |
 
 See each package's README for usage and API.
 

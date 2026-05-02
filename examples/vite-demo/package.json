@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@heojeongbo/cdr-codec": "workspace:*",
-    "@heojeongbo/ts-ros2bag-replay": "workspace:*",
     "@heojeongbo/ts-ros2-msgs": "workspace:*",
+    "@heojeongbo/ts-ros2bag-replay": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

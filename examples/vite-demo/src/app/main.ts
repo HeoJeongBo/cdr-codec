@@ -1,4 +1,5 @@
 import { renderBinarySamplesDemo } from "../pages/binary-samples-demo";
+import { renderCustomMessageDemo } from "../pages/custom-message-demo";
 import { renderPrimitivesDemo } from "../pages/primitives-demo";
 import { renderRos2Demo } from "../pages/ros2-demo";
 import { renderWorkerDemo } from "../pages/worker-demo";
@@ -23,6 +24,9 @@ function activate(name: string): void {
       return;
     case "binary-samples":
       renderBinarySamplesDemo(output);
+      return;
+    case "custom-message":
+      renderCustomMessageDemo(output);
       return;
   }
 }

@@ -1,1 +1,1 @@
-export { renderBinarySamplesDemo } from "./ui";
+export { BinarySamplesDemo } from "./ui";

@@ -7,20 +7,7 @@
     <link rel="stylesheet" href="/src/app/style.css" />
   </head>
   <body>
-    <div id="root">
-      <aside id="nav">
-        <h1>cdr-codec</h1>
-        <p class="sub">CDR encode / decode demos</p>
-        <nav>
-          <button data-demo="primitives" class="active">Primitives + hex dump</button>
-          <button data-demo="worker">Worker (transferable)</button>
-          <button data-demo="ros2">ROS 2 — geometry_msgs/Twist</button>
-          <button data-demo="binary-samples">ROS 2 binary samples</button>
-          <button data-demo="custom-message">Custom message</button>
-        </nav>
-      </aside>
-      <main id="output"></main>
-    </div>
-    <script type="module" src="/src/app/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>

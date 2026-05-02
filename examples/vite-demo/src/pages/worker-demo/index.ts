@@ -1,1 +1,1 @@
-export { renderWorkerDemo } from "./ui";
+export { WorkerDemo } from "./ui";

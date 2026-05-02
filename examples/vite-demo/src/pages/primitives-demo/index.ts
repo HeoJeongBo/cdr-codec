@@ -1,1 +1,1 @@
-export { renderPrimitivesDemo } from "./ui";
+export { PrimitivesDemo } from "./ui";

@@ -1,15 +1,12 @@
 import { createCodec } from "@heojeongbo/ts-ros2-msgs";
 import { Header } from "@heojeongbo/ts-ros2-msgs/std_msgs";
-import { escapeHtml, hexDump } from "../../shared/lib";
+import { hexDump } from "../../shared/lib";
 
-// === User-defined messages (this code lives in user app code, not the library) ===
-
-// A) Reuses std_msgs/Header — composition with built-ins via Header.plan.
 interface RobotStatus {
   header: Header;
-  battery_pct: number; // float32
+  battery_pct: number;
   mode: string;
-  motor_velocities: number[]; // float64 sequence
+  motor_velocities: number[];
 }
 
 const RobotStatus = createCodec<RobotStatus>("my_pkg/RobotStatus", {
@@ -25,11 +22,10 @@ const RobotStatus = createCodec<RobotStatus>("my_pkg/RobotStatus", {
   ],
 });
 
-// B) Entirely custom, no built-in references — exercises sequence-of-struct.
 interface MotorState {
   name: string;
-  target_position: number; // float64
-  max_velocity: number; // float32
+  target_position: number;
+  max_velocity: number;
 }
 interface MotorCmd {
   motors: MotorState[];
@@ -56,8 +52,6 @@ const MotorCmd = createCodec<MotorCmd>("my_pkg/MotorCmd", {
     { name: "emergency_stop", type: { type: "boolean" } },
   ],
 });
-
-// === Demo wiring ===
 
 interface CustomCase {
   readonly title: string;
@@ -198,58 +192,78 @@ function approxEqual(a: unknown, b: unknown, tol = 1e-5): boolean {
   return deepEqual(a, b);
 }
 
-function renderCase(c: CustomCase): string {
+const MUTED = { color: "#8b949e" } as const;
+const PASS_STYLE = { color: "#3fb950", fontWeight: 600 } as const;
+const FAIL_STYLE = { color: "#f85149", fontWeight: 600 } as const;
+const GRID = {
+  display: "grid",
+  gridTemplateColumns: "120px 1fr",
+  gap: "6px 12px",
+  fontSize: 12,
+  marginTop: 12,
+} as const;
+
+function CaseCard({ caseDef }: { caseDef: CustomCase }) {
   let buffer: ArrayBuffer | null = null;
   let decoded: unknown;
   let error: string | null = null;
   try {
-    buffer = c.codec.encode(c.value);
-    decoded = c.codec.decode(new Uint8Array(buffer));
+    buffer = caseDef.codec.encode(caseDef.value);
+    decoded = caseDef.codec.decode(new Uint8Array(buffer));
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
 
-  const ok = !error && approxEqual(decoded, c.value);
-  const badge = ok
-    ? `<span style="color:#3fb950;font-weight:600">PASS ✓</span>`
-    : `<span style="color:#f85149;font-weight:600">FAIL ✗</span>`;
+  const ok = !error && approxEqual(decoded, caseDef.value);
 
-  return `
+  return (
     <section>
-      <h3>${escapeHtml(c.title)} <span style="color:#8b949e;font-weight:400">(${escapeHtml(c.codec.name)})</span></h3>
-      <p style="color:#8b949e;font-size:12px;margin:4px 0 8px">User code (defined in your app, not in the library):</p>
-      <pre>${escapeHtml(c.snippet)}</pre>
+      <h3>
+        {caseDef.title}{" "}
+        <span style={{ color: "#8b949e", fontWeight: 400 }}>({caseDef.codec.name})</span>
+      </h3>
+      <p style={{ ...MUTED, fontSize: 12, margin: "4px 0 8px" }}>
+        User code (defined in your app, not in the library):
+      </p>
+      <pre>{caseDef.snippet}</pre>
 
-      <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:12px;margin-top:12px">
-        <div style="color:#8b949e">source value</div>
-        <pre style="margin:0">${escapeHtml(JSON.stringify(c.value, null, 2))}</pre>
+      <div style={GRID}>
+        <div style={MUTED}>source value</div>
+        <pre style={{ margin: 0 }}>{JSON.stringify(caseDef.value, null, 2)}</pre>
 
-        <div style="color:#8b949e">wire bytes</div>
-        <pre style="margin:0">${escapeHtml(
-          buffer ? hexDump(new Uint8Array(buffer), false) : (error ?? ""),
-        )}</pre>
+        <div style={MUTED}>wire bytes</div>
+        <pre style={{ margin: 0 }}>
+          {buffer ? hexDump(new Uint8Array(buffer), false) : (error ?? "")}
+        </pre>
 
-        <div style="color:#8b949e">decoded</div>
-        <pre style="margin:0">${escapeHtml(
-          error ? "—" : JSON.stringify(decoded, null, 2),
-        )}</pre>
+        <div style={MUTED}>decoded</div>
+        <pre style={{ margin: 0 }}>{error ? "—" : JSON.stringify(decoded, null, 2)}</pre>
 
-        <div style="color:#8b949e">round-trip</div>
-        <div>${badge}${error ? ` <span style="color:#f85149;font-size:12px">${escapeHtml(error)}</span>` : ""}</div>
+        <div style={MUTED}>round-trip</div>
+        <div>
+          <span style={ok ? PASS_STYLE : FAIL_STYLE}>{ok ? "PASS ✓" : "FAIL ✗"}</span>
+          {error ? (
+            <span style={{ color: "#f85149", fontSize: 12, marginLeft: 8 }}>{error}</span>
+          ) : null}
+        </div>
       </div>
     </section>
-  `;
+  );
 }
 
-export function renderCustomMessageDemo(host: HTMLElement): void {
-  host.innerHTML = `
-    <h2>Custom messages — defined in user code</h2>
-    <p style="color:#8b949e;font-size:12px;margin:0 0 16px">
-      Define your own ROS 2 messages with <code>createCodec</code> directly in app code.
-      The library has no registry — these objects are values your code owns.
-      Custom messages can compose built-ins (case A reuses <code>std_msgs/Header.plan</code>)
-      or stand alone (case B has no built-in references).
-    </p>
-    ${CASES.map(renderCase).join("")}
-  `;
+export function CustomMessageDemo() {
+  return (
+    <>
+      <h2>Custom messages — defined in user code</h2>
+      <p style={{ ...MUTED, fontSize: 12, margin: "0 0 16px" }}>
+        Define your own ROS 2 messages with <code>createCodec</code> directly in app code.
+        The library has no registry — these objects are values your code owns. Custom
+        messages can compose built-ins (case A reuses <code>std_msgs/Header.plan</code>)
+        or stand alone (case B has no built-in references).
+      </p>
+      {CASES.map((c) => (
+        <CaseCard key={c.title} caseDef={c} />
+      ))}
+    </>
+  );
 }

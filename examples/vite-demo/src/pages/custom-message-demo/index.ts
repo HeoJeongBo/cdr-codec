@@ -1,1 +1,1 @@
-export { renderCustomMessageDemo } from "./ui";
+export { CustomMessageDemo } from "./ui";

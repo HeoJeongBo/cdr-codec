@@ -1,16 +1,16 @@
 import { Time } from "@heojeongbo/ts-ros2-msgs/builtin_interfaces";
 import { Twist, Vector3 } from "@heojeongbo/ts-ros2-msgs/geometry_msgs";
 import { ColorRGBA, Header } from "@heojeongbo/ts-ros2-msgs/std_msgs";
-import { escapeHtml, hexDump } from "../../shared/lib";
+import { hexDump } from "../../shared/lib";
 
-// Same wire-format fixtures as packages/ts-ros2-msgs/src/__tests__/wire-format.test.ts.
-// These are the exact bytes a real ROS 2 publisher emits for each message.
+interface SampleCodec {
+  name: string;
+  encode(v: unknown): ArrayBuffer;
+  decode(b: Uint8Array): unknown;
+}
+
 interface Sample {
-  readonly codec: {
-    name: string;
-    encode(v: unknown): ArrayBuffer;
-    decode(b: Uint8Array): unknown;
-  };
+  readonly codec: SampleCodec;
   readonly value: unknown;
   readonly hex: string;
   readonly note: string;
@@ -92,12 +92,31 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return true;
 }
 
-function renderSample(s: Sample): string {
-  const inputBytes = hexToBytes(s.hex);
+const PASS_STYLE = { color: "#3fb950", fontWeight: 600 } as const;
+const FAIL_STYLE = { color: "#f85149", fontWeight: 600 } as const;
+const MUTED = { color: "#8b949e" } as const;
+const GRID = {
+  display: "grid",
+  gridTemplateColumns: "120px 1fr",
+  gap: "6px 12px",
+  fontSize: 12,
+} as const;
+
+function PassBadge({ ok }: { ok: boolean }) {
+  return ok ? (
+    <span style={PASS_STYLE}>PASS ✓</span>
+  ) : (
+    <span style={FAIL_STYLE}>FAIL ✗</span>
+  );
+}
+
+function SampleCard({ sample }: { sample: Sample }) {
+  const inputBytes = hexToBytes(sample.hex);
+
   let decoded: unknown;
   let decodeError: string | null = null;
   try {
-    decoded = s.codec.decode(inputBytes);
+    decoded = sample.codec.decode(inputBytes);
   } catch (err) {
     decodeError = err instanceof Error ? err.message : String(err);
   }
@@ -106,55 +125,52 @@ function renderSample(s: Sample): string {
   let encodeError: string | null = null;
   if (decoded !== undefined) {
     try {
-      encodeHex = bytesToHex(new Uint8Array(s.codec.encode(decoded)));
+      encodeHex = bytesToHex(new Uint8Array(sample.codec.encode(decoded)));
     } catch (err) {
       encodeError = err instanceof Error ? err.message : String(err);
     }
   }
 
-  const expectedHex = s.hex.replace(/\s/g, "").toLowerCase();
-  const decodeOk = !decodeError && deepEqual(decoded, s.value);
+  const expectedHex = sample.hex.replace(/\s/g, "").toLowerCase();
+  const decodeOk = !decodeError && deepEqual(decoded, sample.value);
   const encodeOk =
     !encodeError && encodeHex.replace(/\s/g, "").toLowerCase() === expectedHex;
 
-  const passBadge = (ok: boolean) =>
-    ok
-      ? `<span style="color:#3fb950;font-weight:600">PASS ✓</span>`
-      : `<span style="color:#f85149;font-weight:600">FAIL ✗</span>`;
-
-  return `
+  return (
     <section>
-      <h3>${escapeHtml(s.codec.name)}</h3>
-      <p style="color:#8b949e;font-size:12px;margin:4px 0 12px">${escapeHtml(s.note)}</p>
+      <h3>{sample.codec.name}</h3>
+      <p style={{ ...MUTED, fontSize: 12, margin: "4px 0 12px" }}>{sample.note}</p>
 
-      <div style="display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:12px">
-        <div style="color:#8b949e">wire input</div>
-        <pre style="margin:0">${escapeHtml(hexDump(inputBytes, false))}</pre>
+      <div style={GRID}>
+        <div style={MUTED}>wire input</div>
+        <pre style={{ margin: 0 }}>{hexDump(inputBytes, false)}</pre>
 
-        <div style="color:#8b949e">decoded</div>
-        <pre style="margin:0">${escapeHtml(
-          decodeError ?? JSON.stringify(decoded, null, 2),
-        )}</pre>
+        <div style={MUTED}>decoded</div>
+        <pre style={{ margin: 0 }}>{decodeError ?? JSON.stringify(decoded, null, 2)}</pre>
 
-        <div style="color:#8b949e">expected</div>
-        <pre style="margin:0">${escapeHtml(JSON.stringify(s.value, null, 2))}</pre>
+        <div style={MUTED}>expected</div>
+        <pre style={{ margin: 0 }}>{JSON.stringify(sample.value, null, 2)}</pre>
 
-        <div style="color:#8b949e">decode result</div>
-        <div>${passBadge(decodeOk)}</div>
+        <div style={MUTED}>decode result</div>
+        <div>
+          <PassBadge ok={decodeOk} />
+        </div>
 
-        <div style="color:#8b949e">encode → hex</div>
-        <pre style="margin:0">${escapeHtml(
-          encodeError ?? bytesToHex(hexToBytes(encodeHex)),
-        )}</pre>
+        <div style={MUTED}>encode → hex</div>
+        <pre style={{ margin: 0 }}>
+          {encodeError ?? bytesToHex(hexToBytes(encodeHex))}
+        </pre>
 
-        <div style="color:#8b949e">re-encode result</div>
-        <div>${passBadge(encodeOk)}</div>
+        <div style={MUTED}>re-encode result</div>
+        <div>
+          <PassBadge ok={encodeOk} />
+        </div>
       </div>
     </section>
-  `;
+  );
 }
 
-export function renderBinarySamplesDemo(host: HTMLElement): void {
+export function BinarySamplesDemo() {
   const passCount = SAMPLES.filter((s) => {
     try {
       const decoded = s.codec.decode(hexToBytes(s.hex));
@@ -170,17 +186,24 @@ export function renderBinarySamplesDemo(host: HTMLElement): void {
     }
   }).length;
 
-  host.innerHTML = `
-    <h2>ROS 2 binary message samples</h2>
-    <p style="color:#8b949e;font-size:12px;margin:0 0 16px">
-      Each sample below is the exact bytes a real ROS 2 publisher emits over DDS for the
-      given value (CDR_LE encapsulation). For each: decode the wire bytes with
-      <code>${"@heojeongbo/ts-ros2-msgs"}</code>, then re-encode the result and check
-      that the bytes round-trip identically.
-      <strong style="color:${
-        passCount === SAMPLES.length ? "#3fb950" : "#f85149"
-      }">${passCount} / ${SAMPLES.length} passing</strong>.
-    </p>
-    ${SAMPLES.map(renderSample).join("")}
-  `;
+  const allPass = passCount === SAMPLES.length;
+
+  return (
+    <>
+      <h2>ROS 2 binary message samples</h2>
+      <p style={{ ...MUTED, fontSize: 12, margin: "0 0 16px" }}>
+        Each sample below is the exact bytes a real ROS 2 publisher emits over DDS for the
+        given value (CDR_LE encapsulation). For each: decode the wire bytes with{" "}
+        <code>@heojeongbo/ts-ros2-msgs</code>, then re-encode the result and check that
+        the bytes round-trip identically.{" "}
+        <strong style={{ color: allPass ? "#3fb950" : "#f85149" }}>
+          {passCount} / {SAMPLES.length} passing
+        </strong>
+        .
+      </p>
+      {SAMPLES.map((sample) => (
+        <SampleCard key={sample.codec.name} sample={sample} />
+      ))}
+    </>
+  );
 }

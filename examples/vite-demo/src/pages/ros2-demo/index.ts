@@ -1,1 +1,1 @@
-export { renderRos2Demo } from "./ui";
+export { Ros2Demo } from "./ui";

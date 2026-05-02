@@ -1,0 +1,3 @@
+pnpm exec lint-staged
+pnpm -r typecheck
+pnpm -r run test

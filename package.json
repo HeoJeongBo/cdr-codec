@@ -20,11 +20,19 @@
     "release:ts-ros2-msgs:dry": "pnpm --filter @heojeongbo/ts-ros2-msgs release:dry",
     "release:ts-ros2-msgs:patch": "pnpm --filter @heojeongbo/ts-ros2-msgs release:patch",
     "release:ts-ros2-msgs:minor": "pnpm --filter @heojeongbo/ts-ros2-msgs release:minor",
-    "release:ts-ros2-msgs:major": "pnpm --filter @heojeongbo/ts-ros2-msgs release:major"
+    "release:ts-ros2-msgs:major": "pnpm --filter @heojeongbo/ts-ros2-msgs release:major",
+    "prepare": "husky"
   },
   "packageManager": "pnpm@9.0.0",
   "devDependencies": {
     "@biomejs/biome": "^2.4.11",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10",
     "typescript": "^5.5.4"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,jsonc}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
   }
 }

@@ -110,6 +110,8 @@ export async function openDb3Source(
       channels.set(t.id, {
         topic: t.name,
         schemaName: normalizeSchemaName(t.type),
+        // rosbag2 .db3 always uses ros2cdr serialization
+        messageEncoding: "ros2cdr",
       });
       messageCounts.set(t.id, 0);
     }

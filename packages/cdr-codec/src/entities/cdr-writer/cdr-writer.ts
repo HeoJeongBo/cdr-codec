@@ -165,6 +165,28 @@ export class CdrWriter {
     return this;
   }
 
+  /**
+   * Writes a CDR wstring (UTF-16LE). Wire format:
+   *   uint32 byteCount  — byte length including 2-byte null terminator
+   *   uint16[n] chars   — UTF-16LE code units
+   *   uint16 null       — 2-byte null terminator
+   */
+  wstring(value: string): this {
+    this.align(4);
+    const charUnits = value.length;
+    const byteCount = charUnits * 2 + 2;
+    this.ensureCapacity(4 + byteCount);
+    this.view.setUint32(this.offset, byteCount, this.littleEndian);
+    this.offset += 4;
+    for (let i = 0; i < charUnits; i++) {
+      this.view.setUint16(this.offset, value.charCodeAt(i), this.littleEndian);
+      this.offset += 2;
+    }
+    this.view.setUint16(this.offset, 0, this.littleEndian);
+    this.offset += 2;
+    return this;
+  }
+
   int8Array(values: ArrayLike<number>, writeLength = true): this {
     if (writeLength) {
       this.sequenceLength(values.length);

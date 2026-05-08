@@ -55,6 +55,8 @@ export interface TopicInfo {
   readonly schemaName: string;
   readonly messageCount: number;
   readonly hasCodec: boolean;
+  /** Wire encoding reported by the bag file (e.g. "ros2cdr", "cdr", "ros1"). */
+  readonly messageEncoding: string;
 }
 
 export interface BagEvent<T = unknown> {
@@ -144,6 +146,7 @@ export class BagPlayer {
         schemaName: info.schemaName,
         messageCount: count,
         hasCodec: options.codecs?.has(info.schemaName) ?? false,
+        messageEncoding: info.messageEncoding,
       });
     }
     return new BagPlayer(source, topics, options);

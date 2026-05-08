@@ -41,7 +41,11 @@ export async function openMcapSource(
   for (const [channelId, channel] of reader.channelsById) {
     const schema = reader.schemasById.get(channel.schemaId);
     const schemaName = normalizeSchemaName(schema?.name ?? "");
-    channels.set(channelId, { topic: channel.topic, schemaName });
+    channels.set(channelId, {
+      topic: channel.topic,
+      schemaName,
+      messageEncoding: channel.messageEncoding,
+    });
     const c = counts0?.get(channelId);
     counts.set(channelId, c != null ? Number(c) : 0);
   }

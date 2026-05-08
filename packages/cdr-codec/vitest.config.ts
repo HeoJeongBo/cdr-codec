@@ -9,11 +9,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html", "lcov"],
       include: ["src/**/*.ts"],
-      exclude: [
-        "src/**/*.test.ts",
-        "src/**/index.ts",
-        "src/features/cdr-worker/worker.ts",
-      ],
+      exclude: ["src/**/*.test.ts", "src/**/index.ts"],
       thresholds: {
         lines: 100,
         branches: 100,

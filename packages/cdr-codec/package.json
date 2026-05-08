@@ -1,7 +1,7 @@
 {
   "name": "@heojeongbo/cdr-codec",
   "version": "0.1.2",
-  "description": "CDR (Common Data Representation) encoder/decoder for ROS 2, DDS, and OMG IDL — codec, plan-based runner, and Web Worker.",
+  "description": "CDR (Common Data Representation) encoder/decoder for ROS 2, DDS, and OMG IDL — codec and plan-based runner.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,14 +11,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./worker": {
-      "types": "./dist/worker.d.ts",
-      "import": "./dist/worker.js"
-    },
-    "./worker-client": {
-      "types": "./dist/worker-client.d.ts",
-      "import": "./dist/worker-client.js"
     }
   },
   "files": [
@@ -48,7 +40,6 @@
     "idl",
     "serialization",
     "binary",
-    "webworker",
     "robotics"
   ],
   "author": "heojeongbo <heojungbo@gmail.com> (https://github.com/HeoJeongBo)",

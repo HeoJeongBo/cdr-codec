@@ -26,11 +26,40 @@ export function readField(reader: CdrReader, type: CdrFieldType): unknown {
     return result;
   }
   if (type.type === "struct") {
+    const extensibility = type.extensibility ?? "final";
+
+    if (extensibility === "appendable" && reader.isCDR2) {
+      // XCDR2 appendable: read DHEADER (uint32 byte count), then fields.
+      // Unknown trailing bytes (future fields) are skipped.
+      reader.align(4);
+      const dheader = reader.uint32();
+      const endOffset = reader.byteOffset + dheader;
+      const result: Record<string, unknown> = {};
+      for (const field of type.fields) {
+        if (reader.byteOffset >= endOffset) break;
+        result[field.name] = readField(reader, field.type);
+      }
+      // Skip unknown trailing bytes from newer schema versions.
+      if (reader.byteOffset < endOffset) {
+        (reader as unknown as { offset: number }).offset = endOffset;
+      }
+      return result;
+    }
+
     const result: Record<string, unknown> = {};
     for (const field of type.fields) {
       result[field.name] = readField(reader, field.type);
     }
     return result;
+  }
+  if (type.type === "union") {
+    const disc = readPrimitive(reader, type.discriminant);
+    const key = String(disc);
+    const variant = type.variants[key] ?? type.defaultVariant;
+    if (variant == null) {
+      throw new Error(`CDR union: no variant for discriminant ${key}`);
+    }
+    return { discriminant: disc, value: readField(reader, variant) };
   }
   throw new Error(`Unknown CDR field type: ${(type as { type: string }).type}`);
 }
@@ -61,6 +90,8 @@ function readPrimitive(reader: CdrReader, type: string): unknown {
       return reader.boolean();
     case "string":
       return reader.string();
+    case "wstring":
+      return reader.wstring();
     /* c8 ignore next 2 */
     default:
       throw new Error(`Unknown primitive: ${type}`);

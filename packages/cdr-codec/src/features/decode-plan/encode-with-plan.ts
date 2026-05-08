@@ -53,9 +53,43 @@ export function writeField(writer: CdrWriter, type: CdrFieldType, value: unknown
       );
     }
     const record = value as Record<string, unknown>;
+    const extensibility = type.extensibility ?? "final";
+
+    if (extensibility === "appendable" && writer.isCDR2) {
+      // XCDR2 appendable: write DHEADER placeholder, then fields, then patch.
+      writer.align(4);
+      const headerOffset = writer.byteOffset;
+      writer.uint32(0); // placeholder
+      const bodyStart = writer.byteOffset;
+      for (const field of type.fields) {
+        writeField(writer, field.type, record[field.name]);
+      }
+      // Patch DHEADER with actual byte count.
+      const bodyBytes = writer.byteOffset - bodyStart;
+      const view = new DataView((writer as unknown as { buffer: ArrayBuffer }).buffer);
+      view.setUint32(headerOffset, bodyBytes, writer.littleEndian);
+      return;
+    }
+
     for (const field of type.fields) {
       writeField(writer, field.type, record[field.name]);
     }
+    return;
+  }
+  if (type.type === "union") {
+    if (typeof value !== "object" || value === null) {
+      throw new Error(
+        `Expected object for union, got ${value === null ? "null" : typeof value}`,
+      );
+    }
+    const rec = value as Record<string, unknown>;
+    writePrimitive(writer, type.discriminant, rec["discriminant"]);
+    const key = String(rec["discriminant"]);
+    const variant = type.variants[key] ?? type.defaultVariant;
+    if (variant == null) {
+      throw new Error(`CDR union: no variant for discriminant ${key}`);
+    }
+    writeField(writer, variant, rec["value"]);
     return;
   }
   throw new Error(`Unknown CDR field type: ${(type as { type: string }).type}`);
@@ -98,6 +132,9 @@ function writePrimitive(writer: CdrWriter, type: string, value: unknown): void {
       return;
     case "string":
       writer.string(value as string);
+      return;
+    case "wstring":
+      writer.wstring(value as string);
       return;
     /* c8 ignore next 2 */
     default:

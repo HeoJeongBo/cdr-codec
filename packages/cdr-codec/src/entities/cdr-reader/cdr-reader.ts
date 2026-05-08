@@ -2,6 +2,7 @@ import { EncapsulationKind, flagsForKind, isKnownKind } from "../../shared/encap
 
 const HEADER_SIZE = 4;
 const textDecoder = new TextDecoder("utf-8");
+const utf16leDecoder = new TextDecoder("utf-16le");
 
 export class CdrReader {
   readonly kind: EncapsulationKind;
@@ -132,6 +133,31 @@ export class CdrReader {
     );
     const value = textDecoder.decode(bytes);
     this.offset += length;
+    return value;
+  }
+
+  /**
+   * Reads a CDR wstring (UTF-16LE). The wire format is:
+   *   uint32 byteCount  — number of bytes (NOT code units), includes 2-byte null terminator
+   *   uint16[n] chars   — UTF-16LE code units
+   *   uint16 null       — 2-byte null terminator
+   */
+  wstring(): string {
+    this.align(4);
+    const byteCount = this.view.getUint32(this.offset, this.littleEndian);
+    this.offset += 4;
+    if (byteCount <= 2) {
+      this.offset += byteCount;
+      return "";
+    }
+    const charBytes = byteCount - 2;
+    const bytes = new Uint8Array(
+      this.view.buffer,
+      this.view.byteOffset + this.offset,
+      charBytes,
+    );
+    const value = utf16leDecoder.decode(bytes);
+    this.offset += byteCount;
     return value;
   }
 

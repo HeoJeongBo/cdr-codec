@@ -7,6 +7,14 @@
 export interface ChannelInfo {
   readonly topic: string;
   readonly schemaName: string;
+  /**
+   * Wire encoding for messages on this channel.
+   * - `"ros2cdr"` — 4-byte CDR encapsulation header + CDR payload (ROS2 default)
+   * - `"cdr"`     — raw CDR without encapsulation header
+   * - `"ros1"`    — ROS1 serialization (4-byte length prefix, no header)
+   * - `""` / other — unknown or custom encoding
+   */
+  readonly messageEncoding: string;
 }
 
 export interface RawMessage {

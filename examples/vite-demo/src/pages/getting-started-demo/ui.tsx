@@ -61,20 +61,6 @@ const buffer = Twist.encode({
 });
 const decoded: Twist = Twist.decode(new Uint8Array(buffer));`;
 
-const STEP4_CODE = `// Decoding a 100 Hz LIDAR stream on the main thread will eventually
-// jank your UI. Move it to a worker — same plan, same shape.
-
-import { CdrWorkerClient } from "@heojeongbo/cdr-codec/worker-client";
-import CdrWorker from "@heojeongbo/cdr-codec/worker?worker";
-
-const client = new CdrWorkerClient(() => new CdrWorker());
-const planId = await client.preparePlan(plan);
-
-// per message:
-const decoded = await client.decodeWithId(planId, buffer);
-// ...
-client.dispose();`;
-
 const STEP1_PLAN: DecodePlan = {
   type: "struct",
   fields: [
@@ -251,7 +237,7 @@ export function GettingStartedDemo() {
     <>
       <h2>Getting started — from a developer's keyboard</h2>
       <p style={INTRO_NOTE}>
-        Four steps. The code on the left is exactly what you'd paste into your app; the
+        Three steps. The code on the left is exactly what you'd paste into your app; the
         panel on the right is the actual output of that same code, running here in your
         browser. At the bottom is a small playground for trying your own plans.
       </p>
@@ -307,32 +293,6 @@ export function GettingStartedDemo() {
             <pre style={{ margin: 0 }}>
               {hexDump(new Uint8Array(step3Result.buffer), false)}
             </pre>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <StepHeader
-          index={4}
-          title="Don't block the UI — move heavy decodes to a worker"
-        />
-        <p style={STEP_NOTE}>
-          When you're ingesting LIDAR / point clouds / video frames at high frequency,
-          decode in a worker. Same plan, transferable buffers, no main-thread jank. (Live
-          benchmark in the <strong>Worker</strong> tab.)
-        </p>
-        <div style={STEP_LAYOUT}>
-          <pre style={{ margin: 0 }}>{STEP4_CODE}</pre>
-          <div>
-            <p style={RESULT_LABEL}>What changes vs. step 2</p>
-            <ul style={{ ...MUTED, fontSize: 12, margin: 0, paddingLeft: 20 }}>
-              <li>Plan is registered once and referenced by id.</li>
-              <li>Buffers are transferred (zero-copy), not cloned.</li>
-              <li>
-                Decoded result returns via <code>postMessage</code>.
-              </li>
-              <li>Main-thread call site stays a one-liner.</li>
-            </ul>
           </div>
         </div>
       </section>

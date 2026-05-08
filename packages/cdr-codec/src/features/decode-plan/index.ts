@@ -1,4 +1,5 @@
 export {
+  type CdrExtensibility,
   type CdrField,
   type CdrFieldType,
   type CdrPrimitiveType,
@@ -12,3 +13,5 @@ export {
   encodeWithPlan,
   writeField,
 } from "./encode-with-plan";
+export { fingerprintPlan } from "./fingerprint-plan";
+export { schemaId } from "./schema-id";

@@ -1,6 +1,6 @@
 {
   "name": "@heojeongbo/cdr-codec",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "CDR (Common Data Representation) encoder/decoder for ROS 2, DDS, and OMG IDL — codec and plan-based runner.",
   "type": "module",
   "sideEffects": false,

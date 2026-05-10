@@ -148,9 +148,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 // ---------------------------------------------------------------------------
 
 function FingerprintSection() {
-  const fp1 = PublisherStatus.fingerprint;
-  const fp2 = SubscriberStatus.fingerprint;
-  const builtInFp = Twist.fingerprint;
+  const fp1 = PublisherStatus.schemaId;
+  const fp2 = SubscriberStatus.schemaId;
+  const builtInFp = Twist.schemaId;
   const match = fp1 === fp2;
 
   return (

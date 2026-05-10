@@ -13,8 +13,7 @@
     "releaseNotes": null
   },
   "npm": {
-    "publish": true,
-    "publishPath": "."
+    "publish": false
   },
   "hooks": {
     "before:init": [
@@ -24,7 +23,7 @@
       "pnpm --filter @heojeongbo/ts-ros2-msgs build"
     ],
     "before:release": [],
-    "after:bump": ["echo 'Version bumped to ${version}'"],
+    "after:bump": ["echo 'Version bumped to ${version}'", "pnpm publish --no-git-checks"],
     "after:release": [
       "echo 'Successfully released ${name} v${version} to ${repo.repository}.'"
     ]

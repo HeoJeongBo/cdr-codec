@@ -1,6 +1,6 @@
 {
   "name": "@heojeongbo/ts-ros2-msgs",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Hand-written DecodePlans + TypeScript interfaces for ROS 2 standard messages, on top of @heojeongbo/cdr-codec.",
   "type": "module",
   "sideEffects": false,

@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.2.1](https://github-personal/HeoJeongBo/cdr-codec/compare/ts-ros2-msgs-v0.2.0...ts-ros2-msgs-v0.2.1) (2026-05-11)
+
 # [0.2.0](https://github.com/HeoJeongBo/cdr-codec/compare/ts-ros2-msgs-v0.1.2...ts-ros2-msgs-v0.2.0) (2026-05-10)
 
 
